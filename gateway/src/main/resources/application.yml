@@ -1,0 +1,148 @@
+- server:
+    port: 8088
+- keycloak-client:
+    server-url: 'http://localhost:9090'
+    realm: master
+  spring:
+    config:
+      activate:
+        on-profile: default
+    cloud:
+      gateway:
+        default-filters:
+          - TokenRelay
+        routes:
+          - id: basic
+            uri: 'http://localhost:8082'
+            predicates:
+              - 'Path=/companies/**, /products/**,'
+          - id: inventory
+            uri: 'http://localhost:8083'
+            predicates:
+              - 'Path=/inventories/**,'
+          - id: sales
+            uri: 'http://localhost:8084'
+            predicates:
+              - 'Path=/salesOrders/**,'
+          - id: frontend
+            uri: 'http://localhost:8080'
+            predicates:
+              - Path=/**
+        globalcors:
+          corsConfigurations:
+            '[/**]':
+              allowedOriginPatterns:
+                - '*'
+              allowedMethods:
+                - '*'
+              allowedHeaders:
+                - '*'
+              allowCredentials: true
+              allowedOrigins:
+                - '*'
+    security:
+      oauth2:
+        client:
+          provider:
+            keycloak:
+              issuer-uri: '${keycloak-client.server-url}/realms/${keycloak-client.realm}'
+              user-name-attribute: preferred_username
+          registration:
+            keycloak:
+              client-id: <client-id>
+              client-secret: null
+              redirect-uri: gateway-path/login/oauth2/code/client-name
+              authorization-grant-type: authorization_code
+              scope: openid
+        resourceserver:
+          jwt:
+            jwk-set-uri: >-
+              ${keycloak-client.server-url}/realms/${keycloak-client.realm}/protocol/openid-connect/certs
+    profiles: default
+- spring:
+    config:
+      activate:
+        on-profile: docker
+    security:
+      oauth2:
+        client:
+          provider:
+            keycloak:
+              issuer-uri: '${keycloak-client.server-url}/realms/${keycloak-client.realm}'
+              user-name-attribute: preferred_username
+          registration:
+            keycloak:
+              client-id: <client-id>
+              client-secret: null
+              redirect-uri: '{baseUrl}/login/oauth2/code/keycloak'
+              authorization-grant-type: authorization_code
+              scope: openid
+        resourceserver:
+          jwt:
+            jwk-set-uri: >-
+              ${keycloak-client.server-url}/realms/${keycloak-client.realm}/protocol/openid-connect/certs
+    cloud:
+      gateway:
+        routes:
+          - id: basic
+            uri: 'http://basic:8080'
+            predicates:
+              - 'Path=/companies/**, /products/**,'
+          - id: inventory
+            uri: 'http://inventory:8080'
+            predicates:
+              - 'Path=/inventories/**,'
+          - id: sales
+            uri: 'http://sales:8080'
+            predicates:
+              - 'Path=/salesOrders/**,'
+          - id: frontend
+            uri: 'http://frontend:8080'
+            predicates:
+              - Path=/**
+        globalcors:
+          corsConfigurations:
+            '[/**]':
+              allowedOrigins:
+                - '*'
+              allowedMethods:
+                - '*'
+              allowedHeaders:
+                - '*'
+              allowCredentials: true
+    profiles: docker
+  server:
+    port: 8080
+- spring:
+    profiles: docker
+    cloud:
+      gateway:
+        routes:
+          - id: basic
+            uri: 'http://basic:8080'
+            predicates:
+              - 'Path=/companies/**, /products/**,'
+          - id: inventory
+            uri: 'http://inventory:8080'
+            predicates:
+              - 'Path=/inventories/**,'
+          - id: sales
+            uri: 'http://sales:8080'
+            predicates:
+              - 'Path=/salesOrders/**,'
+          - id: frontend
+            uri: 'http://frontend:8080'
+            predicates:
+              - Path=/**
+        globalcors:
+          corsConfigurations:
+            '[/**]':
+              allowedOrigins:
+                - '*'
+              allowedMethods:
+                - '*'
+              allowedHeaders:
+                - '*'
+              allowCredentials: true
+  server:
+    port: 8080
